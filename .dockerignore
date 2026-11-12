@@ -1,0 +1,24 @@
+# Local runtime state (API keys, allowlist) — never bake this into an image.
+data/
+
+# Version control / editor
+.git
+.gitignore
+.vscode
+.idea
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+
+# OS cruft
+.DS_Store
+
+# Docs (not needed inside the image)
+README.md

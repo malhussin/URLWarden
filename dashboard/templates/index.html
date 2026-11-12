@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>URLWarden — Admin Panel</title>
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: #f0f4f8;
+        color: #1a1a2e;
+        min-height: 100vh;
+        display: flex;
+    }
+
+    /* ── Sidebar ────────────────────────────────────────────────── */
+    .sidebar {
+        width: 260px;
+        min-height: 100vh;
+        background: linear-gradient(180deg, #1a0d1f 0%, #3a1030 50%, #7a1f3d 100%);
+        color: #e0e0e0;
+        padding: 28px 20px;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0; left: 0;
+        z-index: 100;
+        transition: transform 0.3s ease;
+    }
+    .sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+    .sidebar-brand .logo {
+        width: 42px; height: 42px;
+        background: linear-gradient(135deg, #ff4d6d, #c9184a);
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px; font-weight: 700; color: #fff;
+    }
+    .sidebar-brand h1 { font-size: 1.35rem; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+    .sidebar-brand small { display: block; font-size: 0.7rem; color: #d8a3b6; font-weight: 400; margin-top: 2px; }
+
+    .sidebar-nav { list-style: none; flex: 1; }
+    .sidebar-nav li { margin-bottom: 4px; }
+    .sidebar-nav a {
+        display: flex; align-items: center; gap: 12px;
+        padding: 11px 14px;
+        color: #d8b8c6; text-decoration: none;
+        border-radius: 10px; font-size: 0.92rem; font-weight: 500;
+        transition: all 0.2s; cursor: pointer;
+    }
+    .sidebar-nav a:hover, .sidebar-nav a.active { background: rgba(255, 77, 109, 0.18); color: #ff8fa3; }
+    .sidebar-nav a .icon { font-size: 1.15rem; width: 24px; text-align: center; }
+
+    .sidebar-footer {
+        padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08);
+        font-size: 0.75rem; color: #9a7383; text-align: center;
+    }
+
+    .menu-toggle {
+        display: none;
+        position: fixed; top: 16px; left: 16px; z-index: 200;
+        background: #1a0d1f; border: none; color: #fff;
+        width: 44px; height: 44px; border-radius: 12px;
+        font-size: 1.3rem; cursor: pointer;
+    }
+
+    /* ── Main ───────────────────────────────────────────────────── */
+    .main { margin-left: 260px; flex: 1; padding: 36px 40px 60px; max-width: 900px; }
+    .main-header { margin-bottom: 28px; }
+    .main-header h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
+    .main-header p { color: #6b7280; font-size: 0.92rem; }
+
+    .card {
+        background: #fff; border-radius: 16px; padding: 24px 28px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.08);
+        margin-bottom: 24px;
+    }
+    .card-title {
+        display: flex; align-items: center; gap: 10px;
+        font-size: 1.05rem; font-weight: 700; margin-bottom: 18px;
+    }
+    .card-title .icon { font-size: 1.2rem; }
+
+    label { display: block; font-size: 0.82rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    input[type="text"], input[type="password"] {
+        width: 100%; padding: 10px 14px; border-radius: 10px;
+        border: 1.5px solid #e5e7eb; font-size: 0.92rem; outline: none;
+        transition: border-color 0.15s;
+    }
+    input[type="text"]:focus, input[type="password"]:focus { border-color: #ff4d6d; }
+    .input-hint { font-size: 0.78rem; color: #9ca3af; margin-top: 6px; }
+    .field { margin-bottom: 18px; }
+
+    .token-wrapper { position: relative; }
+    .token-toggle {
+        position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+        background: none; border: none; cursor: pointer; font-size: 1rem; padding: 4px;
+    }
+
+    .badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-green .dot { background: #10b981; }
+    .badge-gray { background: #f3f4f6; color: #6b7280; }
+    .badge-gray .dot { background: #9ca3af; }
+
+    .btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 10px 20px; border-radius: 10px; border: none;
+        font-size: 0.9rem; font-weight: 600; cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.15s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: linear-gradient(135deg, #ff4d6d, #c9184a); color: #fff; }
+    .btn-primary:hover { box-shadow: 0 4px 14px rgba(201,24,74,0.35); }
+    .btn-outline { background: #fff; color: #c9184a; border: 1.5px solid #ffb3c1; }
+    .btn-outline:hover { background: #fff5f7; }
+    .btn-sm { padding: 8px 14px; font-size: 0.84rem; }
+
+    .input-row { display: flex; gap: 10px; align-items: flex-end; }
+    .input-row .field { flex: 1; margin-bottom: 0; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #f0f1f5; }
+    th { color: #6b7280; font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.4px; }
+    tr:last-child td { border-bottom: none; }
+    .remove-btn {
+        background: #fff0f2; color: #c9184a; border: none; border-radius: 8px;
+        width: 26px; height: 26px; cursor: pointer; font-size: 1rem; line-height: 1;
+    }
+    .remove-btn:hover { background: #ffd7dd; }
+    .empty-note { font-size: 0.86rem; color: #9ca3af; padding: 10px 0; }
+
+    .verdict-safe { color: #059669; font-weight: 600; }
+    .verdict-suspicious { color: #d97706; font-weight: 600; }
+    .verdict-malicious { color: #dc2626; font-weight: 600; }
+
+    .toast-container { position: fixed; top: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast {
+        padding: 14px 20px; border-radius: 12px; font-size: 0.88rem; font-weight: 500; color: #fff;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        animation: toast-in 0.3s ease, toast-out 0.3s ease 2.7s forwards;
+    }
+    .toast-success { background: #059669; }
+    .toast-error { background: #dc2626; }
+    @keyframes toast-in { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes toast-out { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(40px); } }
+
+    @media (max-width: 768px) {
+        .sidebar { transform: translateX(-100%); }
+        .sidebar.open { transform: translateX(0); }
+        .menu-toggle { display: flex; align-items: center; justify-content: center; }
+        .main { margin-left: 0; padding: 80px 20px 60px; }
+    }
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">☰</button>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="logo">🛡️</div>
+        <div>
+            <h1>URLWarden</h1>
+            <small>Admin Panel</small>
+        </div>
+    </div>
+    <ul class="sidebar-nav">
+        <li><a class="active" onclick="scrollToSection('config', event)"><span class="icon">🔑</span> Configuration</a></li>
+        <li><a onclick="scrollToSection('allowlist', event)"><span class="icon">👥</span> Allowlist</a></li>
+        <li><a onclick="scrollToSection('stats', event)"><span class="icon">📊</span> Usage Stats</a></li>
+    </ul>
+</aside>
+
+<main class="main">
+    <div class="main-header">
+        <h2>Configuration</h2>
+        <p>Manage bot credentials and access control. Nothing here is exposed outside this machine.</p>
+    </div>
+
+    <!-- Credentials -->
+    <div class="card" id="config">
+        <div class="card-title">
+            <span class="icon">🔑</span> Credentials
+            <span id="tokenBadge" class="badge badge-gray" style="margin-left:auto;">
+                <span class="dot"></span><span id="tokenBadgeText">Not set</span>
+            </span>
+        </div>
+
+        <div class="field">
+            <label for="telegramToken">Telegram Bot Token</label>
+            <div class="token-wrapper">
+                <input type="password" id="telegramToken" placeholder="Leave blank to keep current value">
+                <button class="token-toggle" onclick="toggleVisibility('telegramToken', this)">👁</button>
+            </div>
+            <div class="input-hint" id="telegramTokenHint">Get a token from <strong>@BotFather</strong> on Telegram.</div>
+        </div>
+
+        <div class="field">
+            <label for="vtKey">VirusTotal API Key</label>
+            <div class="token-wrapper">
+                <input type="password" id="vtKey" placeholder="Leave blank to keep current value">
+                <button class="token-toggle" onclick="toggleVisibility('vtKey', this)">👁</button>
+            </div>
+            <div class="input-hint" id="vtKeyHint">Free key from your VirusTotal account settings.</div>
+        </div>
+
+        <div class="input-hint" style="margin-bottom:16px;">
+            Stored in <code>data/credentials.json</code> on this machine. Saved values are never
+            shown again in plaintext, only a masked preview. Changing the Telegram token requires
+            <code>docker restart urlwarden</code>; the VirusTotal key applies to the bot's next
+            scan automatically.
+        </div>
+
+        <button class="btn btn-primary" onclick="saveConfig()">💾 Save Credentials</button>
+    </div>
+
+    <!-- Allowlist -->
+    <div class="card" id="allowlist">
+        <div class="card-title"><span class="icon">👥</span> Allowed Telegram Users</div>
+        <div class="input-hint" style="margin-bottom:14px;">
+            Only these Telegram user IDs may use the bot. Find your ID by messaging
+            <strong>@userinfobot</strong>.
+        </div>
+        <div class="input-row" style="margin-bottom:16px;">
+            <div class="field">
+                <label for="newUserId">User ID</label>
+                <input type="text" id="newUserId" placeholder="e.g. 123456789">
+            </div>
+            <div class="field">
+                <label for="newUserNote">Note (optional)</label>
+                <input type="text" id="newUserNote" placeholder="e.g. Alice">
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="addAllowlistEntry()">+ Add</button>
+        </div>
+        <table>
+            <thead><tr><th>User ID</th><th>Note</th><th>Added</th><th></th></tr></thead>
+            <tbody id="allowlistBody"></tbody>
+        </table>
+        <div class="empty-note" id="allowlistEmpty" style="display:none;">No users added yet — the bot won't respond to anyone.</div>
+    </div>
+
+    <!-- Usage stats -->
+    <div class="card" id="stats">
+        <div class="card-title"><span class="icon">📊</span> Usage by User</div>
+        <table>
+            <thead><tr><th>User ID</th><th>Username</th><th>Scans</th><th>Last Scan (UTC)</th></tr></thead>
+            <tbody id="statsBody"></tbody>
+        </table>
+        <div class="empty-note" id="statsEmpty" style="display:none;">No scans logged yet.</div>
+    </div>
+
+    <div class="card">
+        <div class="card-title"><span class="icon">🕓</span> Recent Scans</div>
+        <table>
+            <thead><tr><th>URL</th><th>Verdict</th><th>User</th><th>Time (UTC)</th></tr></thead>
+            <tbody id="recentBody"></tbody>
+        </table>
+        <div class="empty-note" id="recentEmpty" style="display:none;">No scans logged yet.</div>
+    </div>
+</main>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    loadConfig();
+    loadAllowlist();
+    loadStats();
+});
+
+async function errorDetail(res, fallback) {
+    try {
+        const body = await res.json();
+        return body.detail || fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+async function loadConfig() {
+    try {
+        const res = await fetch("/api/config");
+        const cfg = await res.json();
+        document.getElementById("telegramToken").placeholder =
+            cfg.telegram_token_set ? `Current: ${cfg.telegram_token_masked}` : "Not set yet";
+        document.getElementById("vtKey").placeholder =
+            cfg.virustotal_api_key_set ? `Current: ${cfg.virustotal_api_key_masked}` : "Not set yet";
+
+        const badge = document.getElementById("tokenBadge");
+        const badgeText = document.getElementById("tokenBadgeText");
+        const bothSet = cfg.telegram_token_set && cfg.virustotal_api_key_set;
+        badge.className = "badge " + (bothSet ? "badge-green" : "badge-gray");
+        badgeText.textContent = bothSet ? "Configured" : "Incomplete";
+    } catch {
+        showToast("Failed to load configuration", "error");
+    }
+}
+
+async function saveConfig() {
+    const telegram_token = document.getElementById("telegramToken").value.trim();
+    const virustotal_api_key = document.getElementById("vtKey").value.trim();
+    try {
+        const res = await fetch("/api/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ telegram_token, virustotal_api_key }),
+        });
+        if (!res.ok) throw new Error(await errorDetail(res, "Failed to save credentials"));
+        document.getElementById("telegramToken").value = "";
+        document.getElementById("vtKey").value = "";
+        await loadConfig();
+        showToast("Credentials saved", "success");
+    } catch (err) {
+        showToast(err.message || "Failed to save credentials", "error");
+    }
+}
+
+function toggleVisibility(id, btn) {
+    const input = document.getElementById(id);
+    if (input.type === "password") { input.type = "text"; btn.textContent = "🙈"; }
+    else { input.type = "password"; btn.textContent = "👁"; }
+}
+
+async function loadAllowlist() {
+    try {
+        const res = await fetch("/api/allowlist");
+        const entries = await res.json();
+        const body = document.getElementById("allowlistBody");
+        const empty = document.getElementById("allowlistEmpty");
+        body.innerHTML = "";
+        empty.style.display = entries.length ? "none" : "block";
+        entries.forEach(e => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${e.user_id}</td><td>${e.note || ""}</td>
+                <td>${formatDate(e.added_at)}</td>
+                <td><button class="remove-btn" onclick="removeAllowlistEntry(${e.user_id})" title="Remove">×</button></td>`;
+            body.appendChild(tr);
+        });
+    } catch {
+        showToast("Failed to load allowlist", "error");
+    }
+}
+
+async function addAllowlistEntry() {
+    const idInput = document.getElementById("newUserId");
+    const noteInput = document.getElementById("newUserNote");
+    const val = idInput.value.trim();
+    if (!val || isNaN(+val)) { showToast("Enter a valid numeric Telegram user ID", "error"); return; }
+    try {
+        const res = await fetch("/api/allowlist", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: parseInt(val, 10), note: noteInput.value.trim() }),
+        });
+        if (!res.ok) throw new Error(await errorDetail(res, "Failed to add user"));
+        idInput.value = ""; noteInput.value = "";
+        await loadAllowlist();
+        showToast("User added", "success");
+    } catch (err) {
+        showToast(err.message || "Failed to add user", "error");
+    }
+}
+
+async function removeAllowlistEntry(userId) {
+    try {
+        const res = await fetch(`/api/allowlist/${userId}`, { method: "DELETE" });
+        if (!res.ok) throw new Error(await errorDetail(res, "Failed to remove user"));
+        await loadAllowlist();
+        showToast("User removed", "success");
+    } catch (err) {
+        showToast(err.message || "Failed to remove user", "error");
+    }
+}
+
+async function loadStats() {
+    try {
+        const res = await fetch("/api/stats");
+        const data = await res.json();
+
+        const statsBody = document.getElementById("statsBody");
+        const statsEmpty = document.getElementById("statsEmpty");
+        statsBody.innerHTML = "";
+        statsEmpty.style.display = data.per_user.length ? "none" : "block";
+        data.per_user.forEach(u => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${u.user_id}</td><td>${u.username || ""}</td>
+                <td>${u.scan_count}</td><td>${formatDate(u.last_scan)}</td>`;
+            statsBody.appendChild(tr);
+        });
+
+        const recentBody = document.getElementById("recentBody");
+        const recentEmpty = document.getElementById("recentEmpty");
+        recentBody.innerHTML = "";
+        recentEmpty.style.display = data.recent.length ? "none" : "block";
+        data.recent.forEach(s => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td class="truncate" title="${s.url}">${truncate(s.url, 50)}</td>
+                <td class="verdict-${s.verdict}">${s.verdict}</td>
+                <td>${s.username || s.user_id}</td><td>${formatDate(s.scanned_at)}</td>`;
+            recentBody.appendChild(tr);
+        });
+    } catch {
+        showToast("Failed to load usage stats", "error");
+    }
+}
+
+function truncate(str, n) { return str.length > n ? str.slice(0, n) + "…" : str; }
+function formatDate(iso) { return iso ? iso.replace("T", " ").split(".")[0] : "—"; }
+
+function toggleSidebar() { document.getElementById("sidebar").classList.toggle("open"); }
+
+function scrollToSection(id, evt) {
+    document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+    document.getElementById("sidebar").classList.remove("open");
+    document.querySelectorAll(".sidebar-nav a").forEach(a => a.classList.remove("active"));
+    if (evt) evt.currentTarget.classList.add("active");
+}
+
+function showToast(message, type) {
+    const container = document.getElementById("toastContainer");
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    toast.textContent = `${type === "success" ? "✅" : "❌"} ${message}`;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3200);
+}
+</script>
+</body>
+</html>

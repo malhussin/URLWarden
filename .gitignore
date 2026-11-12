@@ -1,0 +1,15 @@
+# Persisted runtime state (API keys, allowlist, usage log, scan cache)
+data/*
+!data/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+
+# OS cruft
+.DS_Store
